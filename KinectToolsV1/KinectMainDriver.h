@@ -27,7 +27,7 @@ private:
 	KinectOutput * kinectOutput;
 
 	//---- These events are needed to check status of captured frames
-	HANDLE hevents[3];
+	HANDLE hevents[4];
 
 	//---- Skeleton data
 	SkeletonBody skeletonPool[KinectDevice::SKELETON_MAX_COUNT];
@@ -37,6 +37,8 @@ private:
 
 	//---- Color data captured as image
 	byte dataColor[KinectDevice::DEFAULT_WIDTH*KinectDevice::DEFAULT_HEIGHT * 4];
+
+	byte dataBodyMask[KinectDevice::DEFAULT_WIDTH*KinectDevice::DEFAULT_HEIGHT];
 
 	//---- Range data 
 	unsigned short dataRange[KinectDevice::DEFAULT_WIDTH*KinectDevice::DEFAULT_HEIGHT];
@@ -97,8 +99,20 @@ public:
 	void finalize();
 
 	//----------------------------------------
+
+	//---- Get kinect RGB data, size (640*480*4) 
 	byte * getDataColor();
+
+	//---- Get kinect DEPTH data as an RGB image, size (640*480*4)
 	byte * getDataDepth();
+
+	//---- Get a body silhouette (color), size (640*480*4)
+	byte * getDataChromakey(bool isColor = true);
+
+	//---- Get kinect DEPTH data, (in millimeters), size (640*480)
+	unsigned short * getDataRange();
+
+	//----- Get skeleton data (size of the array is 6)
 	SkeletonBody * getDataSkeletonPool();
 
 };

@@ -27,15 +27,14 @@ void KinectDisplay::init(int width, int height)
 	//---- Bind textures to display depth and color
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, (GLvoid*) dataDepth);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 //-----------------------------------------------------------------
 
-void KinectDisplay::drawSkeletonBone (SkeletonBody skeleton, NUI_SKELETON_POSITION_INDEX joint1, NUI_SKELETON_POSITION_INDEX joint2)
+void KinectDisplay::drawSkeletonBone (SkeletonBody skeleton, int joint1, int joint2)
 {
 	float px1 = skeleton.skeletonPosition[joint1].x;
 	float py1 = skeleton.skeletonPosition[joint1].y;
@@ -69,7 +68,7 @@ void KinectDisplay::drawSkeletonBone (SkeletonBody skeleton, NUI_SKELETON_POSITI
 
 void KinectDisplay::drawKinectSkeleton (SkeletonBody *skeletonPool)
 {
-
+	glPushMatrix();
 	for (int i = 0; i < 6; i++)
 	{
 		//---- Check if this particular skeleton is tracked
@@ -78,36 +77,17 @@ void KinectDisplay::drawKinectSkeleton (SkeletonBody *skeletonPool)
 			//----- Transform all coordinates of the skeleton
 			SkeletonBody transformed = KinectDevice::convertSkeletonCoordinates(skeletonPool[i], width, height);
 
-			//----- Render Torso
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_HEAD, NUI_SKELETON_POSITION_SHOULDER_CENTER);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SHOULDER_LEFT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SHOULDER_RIGHT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_SHOULDER_CENTER, NUI_SKELETON_POSITION_SPINE);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_SPINE, NUI_SKELETON_POSITION_HIP_CENTER);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_HIP_CENTER, NUI_SKELETON_POSITION_HIP_LEFT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_HIP_CENTER, NUI_SKELETON_POSITION_HIP_RIGHT);
+			for (int boneID = 0; boneID < JOINT_ID_KINECTV1::ATLAS_SIZE; boneID++)
+			{
+				int joint1 = JOINT_ID_KINECTV1::ATLAS[boneID].j1;
+				int joint2 = JOINT_ID_KINECTV1::ATLAS[boneID].j2;
 
-			//----- Left Arm
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_SHOULDER_LEFT, NUI_SKELETON_POSITION_ELBOW_LEFT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_ELBOW_LEFT, NUI_SKELETON_POSITION_WRIST_LEFT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_WRIST_LEFT, NUI_SKELETON_POSITION_HAND_LEFT);
+				drawSkeletonBone(transformed, joint1, joint2);
 
-			//----- Right Arm
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_SHOULDER_RIGHT, NUI_SKELETON_POSITION_ELBOW_RIGHT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_ELBOW_RIGHT, NUI_SKELETON_POSITION_WRIST_RIGHT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_WRIST_RIGHT, NUI_SKELETON_POSITION_HAND_RIGHT);
-
-			//----- Left Leg
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_HIP_LEFT, NUI_SKELETON_POSITION_KNEE_LEFT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_KNEE_LEFT, NUI_SKELETON_POSITION_ANKLE_LEFT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_ANKLE_LEFT, NUI_SKELETON_POSITION_FOOT_LEFT);
-
-			//----- Right Leg
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_HIP_RIGHT, NUI_SKELETON_POSITION_KNEE_RIGHT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_KNEE_RIGHT, NUI_SKELETON_POSITION_ANKLE_RIGHT);
-			drawSkeletonBone(transformed, NUI_SKELETON_POSITION_ANKLE_RIGHT, NUI_SKELETON_POSITION_FOOT_RIGHT);
+			}
 		}
 	}
+	glPopMatrix();
 }
 
 void KinectDisplay::drawKinectData (int startX, int startY, byte *data)
@@ -119,6 +99,12 @@ void KinectDisplay::drawKinectData (int startX, int startY, byte *data)
 	glDisable(GL_SCISSOR_TEST);
 
 	//---- Display texture (depth or color image) here
+	glPushMatrix();
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
 	glBindTexture(GL_TEXTURE_2D, textureID);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_BGRA_EXT, GL_UNSIGNED_BYTE, (GLvoid*)data);
  
@@ -132,6 +118,10 @@ void KinectDisplay::drawKinectData (int startX, int startY, byte *data)
         glTexCoord2f(0.0f, 1.0f);
         glVertex3f(startX, startY + height, 0.0f);
     glEnd();
+
+	glDisable(GL_BLEND);
+	glDisable(GL_TEXTURE_2D);
+	glPopMatrix();
 	
 }
 

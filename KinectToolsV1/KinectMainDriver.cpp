@@ -85,6 +85,7 @@ void KinectMainDriver::update(double timestamp)
 	{ 
 		captureFrameDPT(timestamp);
 
+		//---- This conversion is done only if the image representation of the depth map is requested.
 		if (isCaptureDPTI)
 		{
 			for (int i = 0, index = 0; i < KinectDevice::DEFAULT_WIDTH*KinectDevice::DEFAULT_HEIGHT; i++, index += 4)
@@ -128,7 +129,9 @@ void KinectMainDriver::captureFrameRGB(double timestamp)
 
 void KinectMainDriver::captureFrameDPT(double timestamp)
 {
-	bool isCapturedRange = kinectDevice->getKinectFrameRange(dataRange);
+	//---- Get RANGE data AND the BODYMASK
+	//---- If you don't want to get body mask, simply send NULL instead of dataBodyMask
+	bool isCapturedRange = kinectDevice->getKinectFrameRange(dataRange, dataBodyMask);
 
 	if (isCapturedRange)
 	{
@@ -208,7 +211,83 @@ byte * KinectMainDriver::getDataDepth()
 	return dataDepth;
 }
 
+byte * KinectMainDriver::getDataChromakey(bool isColor)
+{
+	byte  * chromaKey = new byte[KinectDevice::DEFAULT_WIDTH*KinectDevice::DEFAULT_HEIGHT * 4];
+	
+	//---- Draw chromakey with color (if isColor = true) or just as body mask
+	if (isColor)
+	{
+		for (int y = 0; y < KinectDevice::DEFAULT_HEIGHT; y++)
+		{
+			for (int x = 0; x < KinectDevice::DEFAULT_WIDTH; x++)
+			{
+				int cindex = x + y * KinectDevice::DEFAULT_WIDTH;
+
+				long colorX = 0;
+				long  colorY = 0;
+
+				KinectDevice::convertColorToDepthXY(x, y, dataRange[cindex], &colorX, &colorY);
+
+				//---- IF the obtained coordinates are in range
+				//---- IF the range data is correctly captured by the device
+				//---- IF the pixel belongs to body mask
+				//---- THEN set color to pixel, otherwise - black
+				if (colorX >= 0 && colorY >= 0 && colorX < KinectDevice::DEFAULT_WIDTH && colorY < KinectDevice::DEFAULT_HEIGHT && dataRange[cindex] != 0 && dataBodyMask[cindex] != 0)
+				{
+					if (dataBodyMask[cindex] != 0)
+					{
+						long colorIndex = (colorX)+(colorY)* KinectDevice::DEFAULT_WIDTH;
+
+						//---- Need to copy RGBA
+						chromaKey[4 * cindex] = dataColor[4 * colorIndex];
+						chromaKey[4 * cindex + 1] = dataColor[4 * colorIndex + 1];
+						chromaKey[4 * cindex + 2] = dataColor[4 * colorIndex + 2];
+						chromaKey[4 * cindex + 3] = dataColor[4 * colorIndex + 3];
+					}
+				}
+				else
+				{
+					chromaKey[4 * cindex] = 0;
+					chromaKey[4 * cindex + 1] = 0;
+					chromaKey[4 * cindex + 2] = 0;
+					chromaKey[4 * cindex + 3] = 0;
+				}
+			}
+		}
+	}
+
+	//---- Draw body mask only as binary image
+	else
+	{
+		for (int i = 0; i < KinectDevice::DEFAULT_WIDTH * KinectDevice::DEFAULT_HEIGHT; i++)
+		{
+			if (dataBodyMask[i] != 0)
+			{
+				chromaKey[4 * i] = 255;
+				chromaKey[4 * i + 1] = 255;
+				chromaKey[4 * i + 2] = 255;
+				chromaKey[4 * i + 3] = 255;
+			}
+			else
+			{
+				chromaKey[4 * i] = 0;
+				chromaKey[4 * i + 1] = 0;
+				chromaKey[4 * i + 2] = 0;
+				chromaKey[4 * i + 3] = 0;
+			}
+		}
+	}
+
+	return chromaKey;
+}
+
 SkeletonBody * KinectMainDriver::getDataSkeletonPool()
 {
 	return skeletonPool;
+}
+
+unsigned short * KinectMainDriver::getDataRange()
+{
+	return dataRange;
 }

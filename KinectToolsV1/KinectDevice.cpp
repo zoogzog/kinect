@@ -18,12 +18,12 @@ KinectDevice * KinectDevice::instance = 0;
 //---- Method to get the class instance. This class is a singleton.
 KinectDevice* KinectDevice::getInstance()
 {
-    if (instance == 0)
-    {
-        instance = new KinectDevice();
-    }
+	if (instance == 0)
+	{
+		instance = new KinectDevice();
+	}
 
-    return instance;
+	return instance;
 }
 
 //---- This is a private constructor
@@ -31,10 +31,10 @@ KinectDevice::KinectDevice()
 {
 	isInit = false;
 
-	 sensor = NULL;
+	sensor = NULL;
 
-	 //---- Default status is OK
-	 STATUS_FLAG = STATUS_OK;
+	//---- Default status is OK
+	STATUS_FLAG = STATUS_OK;
 
 
 }
@@ -56,15 +56,15 @@ bool KinectDevice::init()
 
 	//---- Here we use only one kinect sensor, test if we can bind it
 	queryStatus = NuiCreateSensorByIndex(0, &sensor);
-	if (FAILED(queryStatus)) { STATUS_FLAG = STATUS_FAILCREATE; return false;}
+	if (FAILED(queryStatus)) { STATUS_FLAG = STATUS_FAILCREATE; return false; }
 
 	//---- Get the status of the '0' sensor, if not OK then exit
 	queryStatus = sensor->NuiStatus();
-	if (queryStatus != S_OK) { STATUS_FLAG = STATUS_FAILSTATUS; return false; } 
+	if (queryStatus != S_OK) { STATUS_FLAG = STATUS_FAILSTATUS; return false; }
 
 
 	//---- Attempt to initialize and exit if fail to do
-	queryStatus = sensor->NuiInitialize(NUI_INITIALIZE_FLAG_USES_DEPTH | NUI_INITIALIZE_FLAG_USES_COLOR | NUI_INITIALIZE_FLAG_USES_SKELETON);
+	queryStatus = sensor->NuiInitialize(NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX | NUI_INITIALIZE_FLAG_USES_COLOR | NUI_INITIALIZE_FLAG_USES_SKELETON);
 	if (!SUCCEEDED(queryStatus)) { STATUS_FLAG = STATUS_FAILINIT; return false; }
 
 
@@ -73,27 +73,27 @@ bool KinectDevice::init()
 	eventStreamSKELETON = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	//---- Open stream COLOR
-    queryStatus = sensor->NuiImageStreamOpen(NUI_IMAGE_TYPE_COLOR,  NUI_IMAGE_RESOLUTION_640x480, 0, 2, eventStreamRGB,  &streamRGB);
+	queryStatus = sensor->NuiImageStreamOpen(NUI_IMAGE_TYPE_COLOR, NUI_IMAGE_RESOLUTION_640x480, 0, 2, eventStreamRGB, &streamRGB);
 	if (!SUCCEEDED(queryStatus)) { STATUS_FLAG = STATUS_OSTREAM_COLOR; return false; }
 
 	//---- Open stream DEPTH 
-	queryStatus = sensor->NuiImageStreamOpen(NUI_IMAGE_TYPE_DEPTH,  NUI_IMAGE_RESOLUTION_640x480, 0, 2, eventStreamDEPTH,  &streamDEPTH);
+	queryStatus = sensor->NuiImageStreamOpen(NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX, NUI_IMAGE_RESOLUTION_640x480, 0, 2, eventStreamDEPTH, &streamDEPTH);
 	if (!SUCCEEDED(queryStatus)) { STATUS_FLAG = STATUS_OSTREAM_DEPTH; return false; }
 
 	//---- Open stream SKELETON
 	queryStatus = sensor->NuiSkeletonTrackingEnable(eventStreamSKELETON, 0);
 	if (!SUCCEEDED(queryStatus)) { STATUS_FLAG = STATUS_OSTREAM_SKELETON; return false; }
-	
+
 	STATUS_FLAG = STATUS_OK;
-	
+
 	isInit = true;
 
-    return sensor;
+	return sensor;
 
-	
+
 }
 
-bool KinectDevice::release ()
+bool KinectDevice::release()
 {
 	if (isInit)
 	{
@@ -112,13 +112,13 @@ bool KinectDevice::release ()
 
 //-----------------------------------------------------------------
 
-int KinectDevice::getKinectStatus ()
+int KinectDevice::getKinectStatus()
 {
 	return STATUS_FLAG;
 }
 
 
-bool KinectDevice::getKinectFrameColor (byte * dest)
+bool KinectDevice::getKinectFrameColor(byte * dest)
 {
 	//---- Check if the device was initialized
 	if (!isInit) { STATUS_FLAG = STATUS_NOT_INIT; return false; }
@@ -126,41 +126,49 @@ bool KinectDevice::getKinectFrameColor (byte * dest)
 	//---- I am not sure why in the original samples it is necessary to check
 	//---- If the frame is ready to be captured (everything works without this line).
 	//---- So, let's add it just in case.
-	if ( WAIT_OBJECT_0 != WaitForSingleObject(eventStreamRGB, 0)) { STATUS_FLAG = STATUS_WAIT_COLOR; return false; }
+	if (WAIT_OBJECT_0 != WaitForSingleObject(eventStreamRGB, 0)) { STATUS_FLAG = STATUS_WAIT_COLOR; return false; }
 
 	HRESULT queryStatus;
 
 	NUI_IMAGE_FRAME imageFrame;
-    NUI_LOCKED_RECT LockedRect;
+	NUI_LOCKED_RECT LockedRect;
 
 	//---- Attempt to grab the color frame. If can't set status and exit.
 	queryStatus = sensor->NuiImageStreamGetNextFrame(streamRGB, 0, &imageFrame);
-	if (FAILED(queryStatus)) { STATUS_FLAG =  STATUS_FAILFRAMERGB; return false; }
+	if (FAILED(queryStatus)) { STATUS_FLAG = STATUS_FAILFRAMERGB; return false; }
 
 	//---- Lock the frame texture
-    INuiFrameTexture * texture = imageFrame.pFrameTexture;
-    texture->LockRect(0, &LockedRect, NULL, 0);
+	INuiFrameTexture * texture = imageFrame.pFrameTexture;
+	texture->LockRect(0, &LockedRect, NULL, 0);
 
-    if (LockedRect.Pitch != 0)
-    {
-        const BYTE* curr = (const BYTE*) LockedRect.pBits;
-        const BYTE* dataEnd = curr + (DEFAULT_WIDTH*DEFAULT_HEIGHT)*4;
+	if (LockedRect.Pitch != 0)
+	{
+		const BYTE* curr = (const BYTE*)LockedRect.pBits;
+		const BYTE* dataEnd = curr + (DEFAULT_WIDTH*DEFAULT_HEIGHT) * 4;
 
 		//---- Copy the grabbed data to the output container
-		while (curr < dataEnd) 
-		{
-            *dest++ = *curr++;
-        }
-    }
+	//	while (curr < dataEnd)
+	//	{
+	//		*dest++ = *curr++;
+	//	}
 
-    texture->UnlockRect(0);
-    sensor->NuiImageStreamReleaseFrame(streamRGB, &imageFrame);
+		for (int i = 0; i < (DEFAULT_WIDTH*DEFAULT_HEIGHT) * 4; i++)
+		{
+			*(dest + i) = *(curr + i);
+
+			if ((i + 1) % 4 == 0) { *(dest + i) = 255; }
+		}
+
+	}
+
+	texture->UnlockRect(0);
+	sensor->NuiImageStreamReleaseFrame(streamRGB, &imageFrame);
 
 	return true;
 
 }
 
-bool KinectDevice::getKinectFrameDepth (byte *dest)
+bool KinectDevice::getKinectFrameDepth(byte *dest)
 {
 	//---- Check if the device was initialized
 	if (!isInit) { STATUS_FLAG = STATUS_NOT_INIT; return false; }
@@ -173,39 +181,39 @@ bool KinectDevice::getKinectFrameDepth (byte *dest)
 	HRESULT queryStatus;
 
 	NUI_IMAGE_FRAME imageFrame;
-    NUI_LOCKED_RECT LockedRect;
+	NUI_LOCKED_RECT LockedRect;
 
 	queryStatus = sensor->NuiImageStreamGetNextFrame(streamDEPTH, 0, &imageFrame);
 	if (FAILED(queryStatus)) { STATUS_FLAG = STATUS_FAILFRAMEDPTH; return false; }
 
 	//---- Lock the frame texture
-    INuiFrameTexture* texture = imageFrame.pFrameTexture;
-    texture->LockRect(0, &LockedRect, NULL, 0);
+	INuiFrameTexture* texture = imageFrame.pFrameTexture;
+	texture->LockRect(0, &LockedRect, NULL, 0);
 
-    if (LockedRect.Pitch != 0)
-    {
-        const USHORT* curr = (const USHORT*) LockedRect.pBits;
+	if (LockedRect.Pitch != 0)
+	{
+		const USHORT* curr = (const USHORT*)LockedRect.pBits;
 		const USHORT* dataEnd = curr + (DEFAULT_WIDTH*DEFAULT_HEIGHT);
 
 
-        while (curr < dataEnd) 
+		while (curr < dataEnd)
 		{
-            //---- Get depth in millimeters
-            USHORT depth = NuiDepthPixelToDepth(*curr++);
+			//---- Get depth in millimeters
+			USHORT depth = NuiDepthPixelToDepth(*curr++);
 
-            //---- Convert to grayscale
-            for (int i = 0; i < 3; ++i)
-                *dest++ = (BYTE)((double) depth / 8000 * 255);
-            *dest++ = 0xff;
-        }
-    }
-    texture->UnlockRect(0);
-    sensor->NuiImageStreamReleaseFrame(streamDEPTH, &imageFrame);
+			//---- Convert to grayscale
+			for (int i = 0; i < 3; ++i)
+				*dest++ = (BYTE)((double)depth / 8000 * 255);
+			*dest++ = 0xff;
+		}
+	}
+	texture->UnlockRect(0);
+	sensor->NuiImageStreamReleaseFrame(streamDEPTH, &imageFrame);
 
 	return true;
 }
 
-bool KinectDevice::getKinectFrameRange (unsigned short *dest)
+bool KinectDevice::getKinectFrameRange(unsigned short *dest, byte * bodymask)
 {
 	//---- Check if the device was initialized
 	if (!isInit) { STATUS_FLAG = STATUS_NOT_INIT; return false; }
@@ -218,35 +226,48 @@ bool KinectDevice::getKinectFrameRange (unsigned short *dest)
 	HRESULT queryStatus;
 
 	NUI_IMAGE_FRAME imageFrame;
-    NUI_LOCKED_RECT LockedRect;
+	NUI_LOCKED_RECT LockedRect;
 
 	queryStatus = sensor->NuiImageStreamGetNextFrame(streamDEPTH, 0, &imageFrame);
 	if (FAILED(queryStatus)) { STATUS_FLAG = STATUS_FAILFRAMEDPTH; return false; }
 
 	//---- Lock the frame texture
-    INuiFrameTexture* texture = imageFrame.pFrameTexture;
-    texture->LockRect(0, &LockedRect, NULL, 0);
+	INuiFrameTexture* texture = imageFrame.pFrameTexture;
+	
+	BOOL bnear = FALSE;
 
-    if (LockedRect.Pitch != 0)
-    {
-        const USHORT* curr = (const USHORT*) LockedRect.pBits;
-        const USHORT* dataEnd = curr + (DEFAULT_WIDTH*DEFAULT_HEIGHT);
+	//----- Here we capture DEPTH data and PLAYER BODY MASK
+	sensor->NuiImageFrameGetDepthImagePixelFrameTexture(streamDEPTH, &imageFrame, &bnear, &texture);
+	
+	texture->LockRect(0, &LockedRect, NULL, 0);
 
-        while (curr < dataEnd) 
+	if (LockedRect.Pitch != 0)
+	{
+		const USHORT* curr = (const USHORT*)LockedRect.pBits;
+		const USHORT* dataEnd = curr + (DEFAULT_WIDTH*DEFAULT_HEIGHT * 2);
+
+		//---- Data [RANGE] - 2*px + 1
+		//---- Data [BODYMASK] - 2*px
+		for (int px = 0; px < DEFAULT_WIDTH*DEFAULT_HEIGHT; px++)
 		{
-            //---- Get depth in millimeters
-            USHORT depth = NuiDepthPixelToDepth(*curr++);
+			*dest++ = *(curr + 2 * px + 1);
 
-            *dest++ = depth;
-        }
-    }
-    texture->UnlockRect(0);
-    sensor->NuiImageStreamReleaseFrame(streamDEPTH, &imageFrame);
+			if (bodymask != NULL)
+			{
+				if (*(curr + 2 * px) != 0)
+					*bodymask++ = 6000 + *(bodymask + 2 * px);
+				else
+					*bodymask++ = 0;
+			}
+		}
+	}
+	texture->UnlockRect(0);
+	sensor->NuiImageStreamReleaseFrame(streamDEPTH, &imageFrame);
 
 	return true;
 }
 
-bool KinectDevice::getKinectSkeleton (SkeletonBody * skeletonPool)
+bool KinectDevice::getKinectSkeleton(SkeletonBody * skeletonPool)
 {
 	if (!isInit) { STATUS_FLAG = STATUS_NOT_INIT; return false; }
 
@@ -257,7 +278,7 @@ bool KinectDevice::getKinectSkeleton (SkeletonBody * skeletonPool)
 
 	HRESULT queryStatus;
 
-	NUI_SKELETON_FRAME skeletonFrame = {0};
+	NUI_SKELETON_FRAME skeletonFrame = { 0 };
 
 	queryStatus = sensor->NuiSkeletonGetNextFrame(0, &skeletonFrame);
 	if (FAILED(queryStatus)) { STATUS_FLAG = STATUS_FAILFRAMESKLT;  return false; }
@@ -283,7 +304,7 @@ bool KinectDevice::getKinectSkeleton (SkeletonBody * skeletonPool)
 				skeletonPool[i].skeletonPosition[jointID] = skeleton.SkeletonPositions[jointID];
 
 				//---- Set flag if a particular joint is not tracked
-				if (skeleton.eSkeletonPositionTrackingState[jointID] == NUI_SKELETON_POSITION_NOT_TRACKED) 
+				if (skeleton.eSkeletonPositionTrackingState[jointID] == NUI_SKELETON_POSITION_NOT_TRACKED)
 				{
 					skeletonPool[i].skeletonPosition[jointID].w = 0;
 				}
@@ -301,17 +322,17 @@ bool KinectDevice::getKinectSkeleton (SkeletonBody * skeletonPool)
 
 //-----------------------------------------------------------------
 
-HANDLE & KinectDevice::getEventStreamRGB ()
+HANDLE & KinectDevice::getEventStreamRGB()
 {
 	return eventStreamRGB;
 }
 
-HANDLE & KinectDevice::getEventStreamDEPTH ()
+HANDLE & KinectDevice::getEventStreamDEPTH()
 {
 	return eventStreamDEPTH;
 }
 
-HANDLE & KinectDevice::getEventStreamSKELETON ()
+HANDLE & KinectDevice::getEventStreamSKELETON()
 {
 	return eventStreamSKELETON;
 }
@@ -326,25 +347,36 @@ SkeletonBody KinectDevice::convertSkeletonCoordinates(SkeletonBody  skeletonIN, 
 	{
 		LONG x, y;
 		USHORT depth;
-		
+
 		Vector4 joint = skeletonIN.skeletonPosition[i];
-		
+
 		//---- Transform coordinates
 		NuiTransformSkeletonToDepthImage(joint, &x, &y, &depth);
 
 		//---- Image based coordinates
 		float tx = static_cast<float>(x * width) / DEFAULT_TRANSFORM_WIDTH;
 		float ty = static_cast<float>(y * height) / DEFAULT_TRANSFORM_HEIGHT;
-	
+
 		//---- Store
 		skeletonOUT.skeletonPosition[i].x = tx;
 		skeletonOUT.skeletonPosition[i].y = ty;
 		skeletonOUT.skeletonPosition[i].z = joint.z;
 		skeletonOUT.skeletonPosition[i].w = joint.w;
-	
+
 	}
 
 	skeletonOUT.isTracked = skeletonIN.isTracked;
 
 	return skeletonOUT;
 }
+
+void KinectDevice::convertColorToDepthXY(long x, long y, unsigned short depth, long * rgbX, long * rgbY)
+{
+	
+	NuiImageGetColorPixelCoordinatesFromDepthPixelAtResolution(NUI_IMAGE_RESOLUTION_640x480, NUI_IMAGE_RESOLUTION_640x480, NULL, x, y, depth << 3, rgbX, rgbY);
+
+	
+}
+
+
+

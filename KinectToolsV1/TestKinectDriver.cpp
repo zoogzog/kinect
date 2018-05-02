@@ -35,14 +35,10 @@ double timestamp = 0;
 
 void testDrawScene() 
 {
-
-
 	kinectGameDriver->update();
 
-
-
 	kinectDisplay.drawKinectData(0, 0, kinectGameDriver->getDataDepth());
-	kinectDisplay.drawKinectData(width, 0, kinectGameDriver->getDataColor());
+	kinectDisplay.drawKinectData(width, 0, kinectGameDriver->getDataChromakey());
 	kinectDisplay.drawKinectSkeleton(kinectGameDriver->getDataSkeletonPool());
 
 	glutSwapBuffers();
@@ -95,6 +91,8 @@ void testLaunch(int argc, char* argv[])
 
 	kinectGameDriver = KinectMainDriver::getInstance();
 	bool isOK = kinectGameDriver->init(DEFAULT_DIR_RGB, DEFAULT_DIR_DPT, DEFAULT_DIR_DPTI, DEFAULT_DIR_SKLI, DEFAULT_FILE_SKL, DEFAULT_FILE_LOG_RGB, DEFAULT_FILE_LOG_DPT, true, true, true, true, true);
+
+	if (!isOK) { cout << "KINECT NOT FOUND;" << endl; }
 
 	kinectDisplay.init(width, height);
 

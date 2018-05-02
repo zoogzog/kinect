@@ -39,7 +39,7 @@ public:
 	void init(int width, int height);
 
 	//---- Draws a particular bone of the skeleton
-	void drawSkeletonBone (SkeletonBody skeleton, NUI_SKELETON_POSITION_INDEX joint1, NUI_SKELETON_POSITION_INDEX joint2);
+	void drawSkeletonBone (SkeletonBody skeleton, int joint1, int joint2);
 
 	//---- Draw all tracked skeletons
 	void drawKinectSkeleton (SkeletonBody *skeletonPool);

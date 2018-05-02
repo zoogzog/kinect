@@ -3,12 +3,14 @@
 
 #include <windows.h>
 
-
 #include <NuiApi.h>
 #include <NuiImageCamera.h>
 #include <NuiSensor.h>
 
+//----- This particular library comes from Kinect Toolkit 1.8
+
 #include "SkeletonBody.h"
+
 
 //-----------------------------------------------------------------
 //----- This class handles all queries to the Kinect Device v.1
@@ -30,9 +32,9 @@ private:
 	INuiSensor * sensor;  
 
 	//---- Kinect streams
-	HANDLE streamRGB; 
-	HANDLE streamDEPTH;
-	HANDLE streamSKELETON;
+	HANDLE streamRGB;		//<---- Stream of color images
+	HANDLE streamDEPTH;		//<---- Stream of depth (range) data
+	HANDLE streamSKELETON;	//<---- Stream of tracking skeleton joints
 
 	HANDLE eventStreamRGB;
 	HANDLE eventStreamDEPTH;
@@ -40,7 +42,6 @@ private:
 
 	//---- Kinect status 
 	int STATUS_FLAG;
-
 
 	//---- Flag, shows if the device was inited
 	bool isInit;
@@ -75,6 +76,7 @@ public:
 	static const int STATUS_OSTREAM_COLOR = 10;
 	static const int STATUS_OSTREAM_DEPTH = 11;
 	static const int STATUS_OSTREAM_SKELETON = 12;
+	static const int STATUS_OSTREAM_CHROMAKEY = 13;
 
 	static const int STATUS_WAIT_COLOR = 101;
 	static const int STATUS_WAIT_DEPTH = 102;
@@ -82,6 +84,9 @@ public:
 	
 	//---- Code error, call init first, before using other methods!
 	static const int STATUS_NOT_INIT = 500;
+
+
+	long map[640 * 480 * 2];
 	//----------------------------------------
 
     static KinectDevice* getInstance();
@@ -100,14 +105,15 @@ public:
 
 	//---- Grabs depth frame converted to intensities %256. Size is [width*height*4].
 	//---- Returns false if fails, sets status flag.
-	//---- Out [dest] - depth data, array size of DEFAULT_WIDTH * DEFAULT_HEIGHT
+	//---- Out [dest] - depth data, array size of DEFAULT_WIDTH * DEFAULT_HEIGHT * 4
 	bool getKinectFrameDepth (byte * dest);
 
 	//---- Grabs depth frame without converstion. Each element of the 'dest' array
 	//---- [width*height] is the distance to object in millimeters. 
 	//---- Returns false if fails, sets status flag.
 	//---- Out [dest] - range data, array size of DEFAULT_WIDTH * DEFAULT_HEIGHT
-	bool getKinectFrameRange (unsigned short * dest);
+	//---- Out [bodymask] - optional output, body mask (255/0). array size of DEFAULT_WIDTH * DEFAULT_HEIGHT
+	bool getKinectFrameRange(unsigned short * dest, byte * bodymask = NULL);
 	
 	//---- Grab the all possible skeletons. The size of the skeleton pool should 
 	//---- be of KinectDevice::SKELETON_MAX_COUNT (by default this value is 6)
@@ -123,16 +129,15 @@ public:
 
 	//----------------------------------------
 
-	SkeletonBody static convertSkeletonCoordinates(SkeletonBody skeletonIN, int width, int height);
+	static SkeletonBody convertSkeletonCoordinates(SkeletonBody skeletonIN, int width, int height);
 
+	static void convertColorToDepthXY(long x, long y, unsigned short depth, long * rgbX, long * rgbY);
 
 	//----------------------------------------
 
 	HANDLE & getEventStreamRGB ();
 	HANDLE & getEventStreamDEPTH ();
 	HANDLE & getEventStreamSKELETON ();
-	
-
 };
 
 
