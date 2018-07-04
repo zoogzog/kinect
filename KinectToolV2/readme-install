@@ -1,4 +1,6 @@
-* Download openframeworks (https://openframeworks.cc/) and copy the unpacked folders into of_v0.10.0_vs2017
-* Download and put addon ofxKinectForWindows2 (https://github.com/elliotwoods/ofxKinectForWindows2) put it into of_v0.10.0_vs2017/addons
-* Download Kinect SDK 1.8 and place the libraries into winKinect1
-* Donwload Kinect SDK 2.0 and place the libraries into winKinect2
+1. Download & install Visual Studio 2017
+2. Download & unpack openframeworks. Place it into KinectToolV2/of_v0.10.0_vs2017, 
+3. Install openframeworks plugin for vs 2017 (https://openframeworks.cc/setup/vs/)
+3. Donwload ofxKinectForWindows2 (https://github.com/elliotwoods/ofxKinectForWindows2), place into  KinectToolV2/of_v0.10.0_vs2017/addons
+3. Download & install Kinect SDK 1.8, copy the SDK into KinectToolV2/KinectTool/KinectTool/lib/winKinect1/
+4. Download & install Kinect SDK 2.0, copy the SDK into KinectToolV2/KinectTool/KinectTool/lib/winKinect2/
