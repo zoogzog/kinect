@@ -1,0 +1,4 @@
+* Download openframeworks (https://openframeworks.cc/) and copy the unpacked folders into of_v0.10.0_vs2017
+* Download and put addon ofxKinectForWindows2 (https://github.com/elliotwoods/ofxKinectForWindows2) put it into of_v0.10.0_vs2017/addons
+* Download Kinect SDK 1.8 and place the libraries into winKinect1
+* Donwload Kinect SDK 2.0 and place the libraries into winKinect2
